@@ -2,14 +2,22 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Footer from '../components/Footer'
 import Navbar from '../components/Navbar'
+import LoadingBar from 'react-top-loading-bar'
 import '../styles/globals.css'
 
 function MyApp({ Component, pageProps }) {
   const[cart, setCart] = useState({})
   const[subTotal, setSubTotal] = useState(0);
+  const[user, setUser] = useState({value: null});
+  const [key, setKey] = useState(0)
+  const [progress, setProgress] = useState(0)
   const router = useRouter();
 
+  
+
   useEffect(()=>{
+    router.events.on('routerChnageStart', ()=>{setProgress(40)})
+    router.events.on('routeChangeComplete', ()=>{setProgress(100)})
     try{
       if(localStorage.getItem("cart")){
         setCart(JSON.parse(localStorage.getItem("cart")));
@@ -18,7 +26,18 @@ function MyApp({ Component, pageProps }) {
     }catch (error) {
       localStorage.clear();
     }
-  },[])
+    const token = localStorage.getItem('token')
+    if(token){
+      setUser({value: token})
+      setKey(Math.random())
+    }
+  },[router.query])
+  
+  const logout = () => {
+    localStorage.removeItem('token')
+    setUser({value:null})
+    setKey(Math.random())
+  }
 
   const saveCart = (myCart) => {
     localStorage.setItem("cart",JSON.stringify(myCart));
@@ -66,7 +85,13 @@ function MyApp({ Component, pageProps }) {
   }
 
   return <>
-    <Navbar key={subTotal} cart={cart} buyNow={buyNow} addToCart={addToCart} removeFromCart={removeFromCart} clearCart={clearCart} subTotal={subTotal} />
+    <LoadingBar
+        color='#ff2d55'
+        progress={progress}
+        waitingTime={400}
+        onLoaderFinished={() => setProgress(0)}
+      />
+    <Navbar logout={logout} user={user} key={key} cart={cart} buyNow={buyNow} addToCart={addToCart} removeFromCart={removeFromCart} clearCart={clearCart} subTotal={subTotal} />
     <Component  cart={cart} buyNow={buyNow} addToCart={addToCart} removeFromCart={removeFromCart} clearCart={clearCart} subTotal={subTotal} {...pageProps} />
     <Footer/>
     </>
